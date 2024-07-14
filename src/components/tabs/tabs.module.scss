@@ -1,0 +1,17 @@
+.tabPanel {
+    width: 100%;
+}
+
+.tab{
+    font-family: 'Open Sans';
+    padding-top: 10px;
+    width: 33.333%;
+    min-height: 50px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: bold;
+    @media screen and (max-width: 550px) {
+        padding-inline:0;
+        font-size: 10px;
+}
+}
