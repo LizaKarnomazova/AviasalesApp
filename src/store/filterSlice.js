@@ -17,7 +17,7 @@ export const fetchTickets = createAsyncThunk('tickets/fetchTickets', async () =>
     const data = await secondResponse.json();
     return data;
   } catch {
-    return false;
+    return { error: true };
   }
 });
 
@@ -27,7 +27,7 @@ const filterSlice = createSlice({
     tickets: [],
     dataStop: 0,
     status: null,
-    error: null,
+    error: 0,
     listLength: 5,
     filters: {
       Все: true,
@@ -36,26 +36,40 @@ const filterSlice = createSlice({
       '2 пересадки': true,
       '3 пересадки': true,
     },
+    tabs: {
+      'самый дешевый': true,
+      'самый быстрый': false,
+      оптимальный: false,
+    },
   },
   reducers: {
     onChangeCheckbox(state, action) {
       state.filters = { ...state.filters, [action.payload.label]: !state.filters[action.payload.label] };
 
-      if (action.payload.label === 'Все' && state.filters[action.payload.label] === true) {
+      if (action.payload.label === 'Все') {
         state.filters = {
-          Все: true,
-          'Без пересадок': true,
-          '1 пересадка': true,
-          '2 пересадки': true,
-          '3 пересадки': true,
+          Все: state.filters[action.payload.label],
+          'Без пересадок': state.filters[action.payload.label],
+          '1 пересадка': state.filters[action.payload.label],
+          '2 пересадки': state.filters[action.payload.label],
+          '3 пересадки': state.filters[action.payload.label],
         };
-      } else if (state.filters[action.payload.label] === false) {
+      } else if (!state.filters[action.payload.label]) {
         state.filters = {
           ...state.filters,
           Все: false,
         };
+      } else if (
+        state.filters[action.payload.label] &&
+        Object.values(state.filters).filter((el) => el).length === 4
+      ) {
+        state.filters = {
+          ...state.filters,
+          Все: true,
+        };
       }
-
+    },
+    onChangeFilterTickets(state) {
       let values = Object.values(state.filters);
 
       for (let i = 0; i < values.length; i += 1) {
@@ -81,14 +95,35 @@ const filterSlice = createSlice({
     },
     onChangeTab(state, action) {
       if (action.payload.label === 'самый дешевый') {
-        state.tickets.sort((a, b) => (a.price > b.price ? 1 : -1));
+        state.tabs = {
+          'самый дешевый': true,
+          'самый быстрый': false,
+          оптимальный: false,
+        };
       } else if (action.payload.label === 'самый быстрый') {
+        state.tabs = {
+          'самый дешевый': false,
+          'самый быстрый': true,
+          оптимальный: false,
+        };
+      } else if (action.payload.label === 'оптимальный') {
+        state.tabs = {
+          'самый дешевый': false,
+          'самый быстрый': false,
+          оптимальный: true,
+        };
+      }
+    },
+    onChangeTabTickets(state) {
+      if (state.tabs['самый дешевый']) {
+        state.tickets.sort((a, b) => (a.price > b.price ? 1 : -1));
+      } else if (state.tabs['самый быстрый']) {
         state.tickets.sort((a, b) =>
           a.segments[0].duration + a.segments[1].duration > b.segments[0].duration + b.segments[1].duration
             ? 1
             : -1
         );
-      } else if (action.payload.label === 'оптимальный') {
+      } else if (state.tabs['оптимальный']) {
         state.tickets.sort((a, b) =>
           a.price / 10 + a.segments[0].duration + a.segments[1].duration >
           b.price / 10 + b.segments[0].duration + b.segments[1].duration
@@ -100,29 +135,39 @@ const filterSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+
       .addCase(fetchTickets.pending, (state) => {
         state.status = 'loading';
-        state.error = null;
       })
       .addCase(fetchTickets.fulfilled, (state, action) => {
-        if (action.payload && !action.payload.stop) {
+        if (Array.isArray(action.payload.tickets)) {
           state.tickets = [...state.tickets, ...action.payload.tickets];
-          state.error = null;
+
+          state.tickets.forEach((ticket) => {
+            ticket.hide = false;
+          });
+          state.error = 0;
         }
-        state.tickets = state.tickets.sort((a, b) => (a.price > b.price ? 1 : -1));
-        state.tickets.forEach((ticket) => {
-          ticket.hide = false;
-        });
-        if ((!action.payload.stop || !action.payload) && state.dataStop !== true) {
+
+        if (!action.payload.stop && state.dataStop !== true) {
           state.dataStop += 1;
         } else {
           state.status = 'resolved';
           state.dataStop = true;
         }
+
+        if (action.payload.error) {
+          state.error += 1;
+          if (state.error >= 3) {
+            state.status = 'rejected';
+            state.dataStop = true;
+          }
+        }
       });
   },
 });
 
-export const { onChangeCheckbox, addTickets, onChangeTab } = filterSlice.actions;
+export const { onChangeCheckbox, onChangeFilterTickets, addTickets, onChangeTab, onChangeTabTickets } =
+  filterSlice.actions;
 
 export default filterSlice.reducer;

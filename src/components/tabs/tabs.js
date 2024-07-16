@@ -2,7 +2,7 @@ import React from 'react';
 import { useDispatch } from 'react-redux';
 import { Radio } from 'antd';
 
-import { onChangeTab } from '../../store/filterSlice';
+import { onChangeTab, onChangeTabTickets } from '../../store/filterSlice';
 
 import Class from './tabs.module.scss';
 
@@ -15,7 +15,10 @@ const Tabs = () => {
       key={label}
       value={label}
       className={Class.tab}
-      onClick={() => dispatch(onChangeTab({ label }))}
+      onClick={() => {
+        dispatch(onChangeTab({ label }));
+        dispatch(onChangeTabTickets());
+      }}
     >
       {label.toUpperCase()}
     </Radio.Button>

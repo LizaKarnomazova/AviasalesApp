@@ -1,7 +1,7 @@
 import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 
-import { onChangeCheckbox } from '../../store/filterSlice';
+import { onChangeCheckbox, onChangeFilterTickets } from '../../store/filterSlice';
 
 import Class from './filters.module.scss';
 
@@ -18,7 +18,10 @@ const Filters = () => {
         id={label}
         className={Class.filterToggle}
         checked={toggles[label]}
-        onChange={() => dispatch(onChangeCheckbox({ label }))}
+        onChange={() => {
+          dispatch(onChangeCheckbox({ label }));
+          dispatch(onChangeFilterTickets());
+        }}
       />
       <label htmlFor={label}>{label}</label>
     </li>
